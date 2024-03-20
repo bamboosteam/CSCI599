@@ -4,7 +4,7 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
-const container = document.getElementById( 'container11' );
+const container = document.getElementById( 'container12' );
 container.style.position = 'relative';
 
 let renderer, stats, gui;
@@ -17,7 +17,7 @@ function initScene() {
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / (window.innerHeight * 0.5), 0.1, 1000 );
 	
 	renderer = new THREE.WebGLRenderer();
-	renderer.setSize( window.innerWidth, window.innerHeight * 0.5 );
+	renderer.setSize( window.innerWidth*0.8, window.innerHeight * 0.4 );
 	container.appendChild( renderer.domElement );
 
 	controls = new OrbitControls( camera, renderer.domElement );
@@ -37,8 +37,7 @@ function initScene() {
 	let loader = new OBJLoader();
 	loader.load( 
 		// resource URL
-		'../assets/assignment1/cube_subdivided.obj', 
-		// '../assets/bunny.obj',
+		'./cube_subdivided3.obj', 
 		// called when resource is loaded
 		function ( object ) {
 			cube = object.children[0];
@@ -66,6 +65,7 @@ function initSTATS() {
 	stats.dom.style.position = 'absolute';
 	stats.dom.style.top = 0;
 	stats.dom.style.left = 0;
+	stats.dom.style.margin = '30px';
 	container.appendChild( stats.dom );
 }
 
@@ -79,6 +79,7 @@ function initGUI() {
 		gui.domElement.style.position = 'absolute';
 		gui.domElement.style.top = '0px';
 		gui.domElement.style.right = '0px';
+		gui.domElement.style.margin = '30px';
 		container.appendChild( gui.domElement );
 		isinitialized = true;
 	}
@@ -101,7 +102,7 @@ function animate() {
 function onWindowResize() {
 	camera.aspect = window.innerWidth / (window.innerHeight * 0.5);
 	camera.updateProjectionMatrix();
-	renderer.setSize( window.innerWidth, window.innerHeight * 0.5 );
+	renderer.setSize( window.innerWidth * 0.8, window.innerHeight * 0.4 );
 };
 
 window.addEventListener( 'resize', onWindowResize, false );

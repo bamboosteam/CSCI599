@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>assignment1</title>
+		<style>
+			body { margin: 0; }
+		</style>
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://unpkg.com/three@0.147.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.147.0/examples/jsm/"
+          }
+        }
+    </script>
+    <!-- <style>
+        .flex-container {
+            display: flex;
+            justify-content: center;
+        }
+        #container11, #container12, #container13 {
+            width: 30%;
+            height: 300px;
+            margin: 10px;
+        }
+        #container2 {
+            width: 100%;
+            height: 300px;
+            margin: 10px;
+        }
+    </style> -->
+	</head>
+	<body>
+		<h1 style="text-align: center;">Assignment 1: Surface Mesh Simplication and Subdivision</h1>
+		<h2>Introduction</h2>
+		<p>For this assignment, you will be implementing two algorithms covering: 1. Loop Subdivision 2. Quadratic Error Mesh Decimation over any 3D object. 
+			<ul>
+				<li><a href="https://en.wikipedia.org/wiki/Subdivision_surface#Loop_subdivision_surface">Loop Subdivision</a></li>
+				<li><a href="https://www.cs.cmu.edu/~./garland/Papers/quadrics.pdf">Quadric Error Mesh Decimation</a></li>
+			</ul>
+			We have made available a visualization tool using the Three.js library implemented in "./js/assignment1.js" and an example implementation located in "./assignments/assignment1.py". Your objective is to create implementations for both "subdivision_loop" and "simplify_quadric_error". You are encouraged to use a programming language with which you are comfortable. The output results should be in the obj format, and you must visualize your outcomes accordingly. 
+			<br><br>
+			<b>How to Submit: </b>Please submit this template file along with your implementation as a zip file. The zip file should contain your source code, the generated results in OBJ mesh format, and a report that has been modified using this HTML file. The report should comprise your results and a concise explanation of your implementation. Alternatively, you may choose to create a GitHub repository containing all these elements and provide a link for submission.
+			<br><br>
+			<b>Grading: </b>The grading is based on the correctness of your implementation. You are encouraged to use the visualization tool to debug your implementation. You can also use the visualization tool to test your implementation on other 3D models. You can find an example of 3D model in the "./assets" folder.</p>
+		</p>
+		<h2>Background</h2>
+		
+		<h2>Data Structure</h2>
+		<p>
+			<b>Design Logic </b>
+            <p>I utilized the same data structure as trimesh, which is a pair of a list of vertices coordinates and a list of corresponding faces.</p>
+			<b>Implement Details </b>
+            <p>Implementation details for each algorithm are mentioned in the following.</p>
+
+		</p>
+		<h2>Loop Subdivision</h2>
+		<p>
+			<b>Algorithm</b>
+			<p>
+            <ol>
+                <li>Create the odd vertices by obtaining the middle points in each edge</li>
+                <li>Update the positions of interior odd vertices (the boundary position is basically the middle points of two vertices, so no need to recompute) using the following equation:
+                    <p>new_vertex = 3/4 * (a + b) + 1/8 * (c + d) (where a and b are the adjacent even vertices and c and d are the remaining vertices)</p>
+                </li>
+                <li>Update the positions of even vertices using appropriate update equations as follows
+                    <ul>
+                        <li>Interior case: v = vertex * (1-k*BETA) +
+                            (sum of all k neighbor
+                            vertices)*BETA</li>
+                        <li>Boundary case: v = 3/4 * vertex + 1/8 * (sum of neighboring vertices)</li>
+                    </ul>
+                </li>
+                <li>Remesh the new faces using the updated vertices</li>
+            </ol>
+            <br>
+			<b>Implement Details </b>
+            <p>
+                I made use of the partial implementation given at <a href="https://piazza.com/class/lrfj288k5hq5dx/post/43" target="_blank">this piazza post</a> and added the edge update for the boudary even vertices.</p><br>
+                For the boundary cases of even vertices, I used the following logic (<a href="https://github.com/bamboosteam/CSCI599/blob/401360d9fa42dc0ce34ea136f6c26d0b9f3a497a/code/assignment1.py#L123">source code</a>):
+                <ul>
+                    <li>After recomputing all the even vertices' new positions, check the edge_bound_mask to see if there exists a boundary edge or not. If there is, move on to additional update for the even boundary vertices </li>
+                    <li>To make the update easier, create another mask for even boundary vertices, which is basically the indices of vertices which are part of the boundary edges.</li>
+                    <li>For each boundary vertex, I found the corresponding edge and the next edge. I then calculated the new vertex position using the following formula:
+                        <p>new_vertex = 3/4 * vertex + 1/8 * (sum of neighboring vertices)</p>
+                    </li>
+                </ul>
+                Additionaly, since all the subdivision scheme is for one iteration, I call this loop subdivision function multiple times to get the desired number of iterations.
+            </p>
+			<br>
+			<b>Results </b>
+		</p>
+            <h3>Iteration: 1, vertices_shape=(26, 3), faces_shape=(48, 3)</h3>
+            <div id="container11"></div>
+            <h3>Iteration: 3, vertices_shape=(386, 3), faces_shape=(768, 3)</h3>
+            <div id="container12"></div>
+            <h3>Iteration: 5, vertices.shape=(6146, 3), faces.shape=(12288, 3)</h3>
+            <div id="container13"></div>
+		<h2>Quadric Error Mesh Decimation</h2>
+		<p>
+			<b>Algorithm</b>
+			<p>
+                <ol>
+                    <li>Compute the plane equation K for all the triangle mesh</li>
+                    <li>Compute the quadratic errors of each vertex by summing up Ks of neighborig faces</li>
+                    <li>Compute the costs of each edge and create a heap for the following incremental collapse step</li>
+                    <li>Iteratively collapse an edge until the number of faces reaches to the target as following
+                        <ol>
+                            <li>Find the edge with minimum cost, see if it's a valid edge or not. If it contains already removed vertex, it's invalid.</li>
+                            <li>Collapse the edge, the faces, and the vertices and update the vertices to a new vertex which minimize the edge cost</li>
+                            <li>Update the geometry coordinates of faces (vertices) which are adjacent to this edge</li>
+                            <li>Recalculate the edge costs and update the heap</li>
+                        </ol>
+                    </li>
+                    <li>Return the resulting mesh</li>
+                </ol>
+            </p><br>
+			<b>Implement Details </b>
+			<p>
+                I used the same data structure as the loop subdivision and update the indices and neighboring information upon the remeshing.
+                <br>
+                When I compute the new vertex to minimize the edge cost, I used the middle point of the edge in the case where the derivitive of the cost function cannot be computed (i.e. the following matrix B is not invertible).<br>
+                <img src="./min_cost_derivative.png" width="300"/><br>
+                Instead of adding a new vertex upon the edge collapse (e = {v0, v1}), I kept v0 and update the coordinates of v0 to that of the new vertex and update all the connectivities of v1 to v0. This helps all the faces and edges rebuilting the new structure.<br>
+                These are some details from the source code:
+                <ul>
+                    <li><a href="https://github.com/bamboosteam/CSCI599/blob/401360d9fa42dc0ce34ea136f6c26d0b9f3a497a/code/assignment1.py#L220">Compute plane equations of each triangle and quadratic errors of each vertex </a></li>
+                    <li><a href="https://github.com/bamboosteam/CSCI599/blob/401360d9fa42dc0ce34ea136f6c26d0b9f3a497a/code/assignment1.py#L230">Compute the cost for each edge</a></li>
+                    <li><a href="https://github.com/bamboosteam/CSCI599/blob/401360d9fa42dc0ce34ea136f6c26d0b9f3a497a/code/assignment1.py#L244">Collapse minimum cost edges until the number of faces reaches to face_count</a></li>
+                    <li><a href="https://github.com/bamboosteam/CSCI599/blob/401360d9fa42dc0ce34ea136f6c26d0b9f3a497a/code/assignment1.py#L275">Update the vertex and reconnect all the neighborning faces/ edges</a></li>
+                    <li><a href="https://github.com/bamboosteam/CSCI599/blob/401360d9fa42dc0ce34ea136f6c26d0b9f3a497a/code/assignment1.py#L329">Recompute the quadratic errors for all vertices which were a part of the removed faces</a></li>
+                    <li><a href="https://github.com/bamboosteam/CSCI599/blob/401360d9fa42dc0ce34ea136f6c26d0b9f3a497a/code/assignment1.py#L341">Update the edge cost and reorder the heap</a></li>
+                </ul>
+
+                
+            </p><br>
+			<b>Results </b>
+
+		</p>
+        <h3>Face count: 10, vertices_shape=(7, 3), faces_shape=(10, 3)</h3>
+		<div id="container21"></div>
+        <h3>Face count: 8, vertices_shape=(6, 3), faces_shape=(8, 3)</h3>
+        <div id="container22"></div>
+        <h3>Face count: 4, vertices_shape=(4, 3), faces_shape=(3, 3)</h3>
+        <div id="container23"></div>
+		
+		<h2>Extra Credits</h2>
+		<script type="module" src="../js/assignment11.js"></script>
+        <script type="module" src="../js/assignment12.js"></script>
+        <script type="module" src="../js/assignment13.js"></script>
+		<script type="module" src="../js/assignment21.js"></script>
+        <script type="module" src="../js/assignment22.js"></script>
+        <script type="module" src="../js/assignment23.js"></script>
+
+	</body>
+</html>
